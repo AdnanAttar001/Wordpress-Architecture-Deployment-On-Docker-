@@ -1,0 +1,60 @@
+services:
+
+  # MySQL Database Container
+  db:
+    image: mysql:8.0
+    container_name: wordpress-db
+    restart: always
+
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wpuser
+      MYSQL_PASSWORD: wp123
+
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+    networks:
+      - wordpress-network
+
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # WordPress Application Container
+  wordpress:
+    build: .
+    container_name: wordpress-app
+    restart: always
+
+    ports:
+      - "8080:80"
+
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: wpuser
+      WORDPRESS_DB_PASSWORD: wp123
+      WORDPRESS_DB_NAME: wordpress
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    volumes:
+      - wordpress-data:/var/www/html
+
+    networks:
+      - wordpress-network
+
+# Persistent Storage
+volumes:
+  mysql-data:
+  wordpress-data:
+
+# Docker Network
+networks:
+  wordpress-network:
+    driver: bridge
